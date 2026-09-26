@@ -72,7 +72,7 @@
         <div class="mobile-editor-bar mobile-only">
           <button class="button secondary compact" id="openCharsBtn">☰ Karakter</button>
           <span id="mobileCharLabel">Huruf A</span>
-          <button class="button secondary compact" id="mobileToolsBtn">Tools</button>
+          <button class="button secondary compact" id="mobileToolsBtn">Panel</button>
         </div>
 
         <div class="editor-heading">
@@ -150,6 +150,10 @@
       </section>
 
       <aside class="properties" id="properties">
+        <div class="mobile-properties-head mobile-only">
+          <div><p class="eyebrow">Font studio</p><h2>Panel</h2></div>
+          <button class="icon-btn" id="propertiesClose" type="button" aria-label="Tutup panel">×</button>
+        </div>
         <section class="panel">
           <div class="panel-heading"><div><p class="eyebrow">Font setup</p><h3>Detail font</h3></div></div>
           <label class="field"><span>Nama font</span><input id="fontName" type="text" value="My Handwriting" maxlength="42" /></label>
@@ -203,6 +207,7 @@
     <nav class="bottom-nav mobile-only">
       <button id="bottomChars"><span>⌨</span>Karakter</button>
       <button class="active"><span>✎</span>Gambar</button>
+      <button id="bottomPanel"><span>⚙</span>Panel</button>
       <button id="bottomPreview"><span>◉</span>Preview</button>
       <button id="bottomFinish"><span>↓</span>Export</button>
     </nav>

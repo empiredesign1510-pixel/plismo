@@ -133,3 +133,17 @@ Untuk menjadikannya produk font-engine production-grade, next technical layer id
 7. diacritic/component builder,
 8. hinting dan validation pipeline,
 9. IndexedDB/cloud sync untuk project besar.
+
+
+## Mobile UX v3
+
+- Character list = drawer kiri.
+- Font/property panel = drawer kanan.
+- Bottom navigation = Character, Draw, Panel, Preview, Export.
+- Semua fitur desktop tetap bisa diakses dari HP.
+- Canvas toolbar memakai layout multi-row, bukan dipaksa satu baris.
+- Brush picker tetap di dalam viewport.
+- Modal besar menjadi full-height mobile sheet.
+- Template/preview/assistant/kerning/scan/export punya layout mobile khusus.
+- Mendukung safe-area pada iPhone/Android.
+- Breakpoint ekstra untuk layar <=380px.
