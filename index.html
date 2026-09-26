@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f7fb" />
+  <meta name="description" content="GlyphCraft — gambar tulisanmu dan ubah menjadi font OTF/TTF langsung di browser." />
+  <title>GlyphCraft — Handwriting Font Maker</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://esm.sh" crossorigin>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="GlyphCraft home">
+        <span class="brand-mark" aria-hidden="true">G</span>
+        <span class="brand-copy"><strong>GlyphCraft</strong><small>Handwriting Font Maker</small></span>
+      </a>
+
+      <div class="topbar-center" aria-label="Project progress">
+        <div class="progress-copy"><span id="progressText">0 / 87 karakter</span><strong id="progressPercent">0%</strong></div>
+        <div class="progress-track"><span id="progressBar"></span></div>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="Ganti tema" title="Light / Dark mode">
+          <span class="sun">☀</span><span class="moon">☾</span>
+        </button>
+        <button class="button secondary desktop-only" id="previewTopBtn" type="button">Preview</button>
+        <button class="button primary" id="finishTopBtn" type="button">Selesai</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-heading">
+          <div><p class="eyebrow">Character set</p><h2>Karakter</h2></div>
+          <button class="icon-btn sidebar-close mobile-only" id="sidebarClose" aria-label="Tutup daftar karakter">×</button>
+        </div>
+
+        <div class="segment" id="charTabs" role="tablist" aria-label="Grup karakter">
+          <button class="active" data-group="upper" type="button">ABC</button>
+          <button data-group="lower" type="button">abc</button>
+          <button data-group="numbers" type="button">123</button>
+          <button data-group="symbols" type="button">#+=</button>
+        </div>
+
+        <div class="char-grid" id="charGrid" aria-label="Daftar karakter"></div>
+
+        <div class="sidebar-tip">
+          <span class="tip-icon">✦</span>
+          <div><strong>Tip</strong><p>Gambar mengikuti huruf transparan. Kamu boleh sedikit melewati garis bantu—font tetap dibuat dari goresanmu.</p></div>
+        </div>
+      </aside>
+
+      <section class="editor">
+        <div class="mobile-editor-bar mobile-only">
+          <button class="button secondary compact" id="openCharsBtn" type="button">☰ Karakter</button>
+          <span id="mobileCharLabel">Huruf A</span>
+          <button class="button secondary compact" id="mobilePreviewBtn" type="button">Preview</button>
+        </div>
+
+        <div class="editor-heading">
+          <div>
+            <p class="eyebrow" id="groupEyebrow">Huruf Kapital</p>
+            <h1>Gambar karakter <span id="charTitle">A</span></h1>
+            <p>Gunakan mouse, stylus, atau jari. Template hanya panduan dan tidak ikut masuk ke font.</p>
+          </div>
+          <div class="status-pill" id="saveStatus"><span></span> Belum digambar</div>
+        </div>
+
+        <div class="canvas-card">
+          <div class="canvas-toolbar">
+            <div class="tool-group">
+              <button class="tool-btn active" id="penTool" type="button" aria-label="Pena" title="Pena">✎</button>
+              <button class="tool-btn" id="eraserTool" type="button" aria-label="Penghapus" title="Penghapus">⌫</button>
+            </div>
+            <span class="toolbar-divider"></span>
+            <label class="slider-control">
+              <span>Ukuran</span>
+              <input id="brushSize" type="range" min="10" max="54" value="28" />
+              <output id="brushSizeValue">28</output>
+            </label>
+            <span class="toolbar-divider"></span>
+            <label class="slider-control template-control">
+              <span>Template</span>
+              <input id="templateOpacity" type="range" min="0" max="65" value="22" />
+              <output id="templateOpacityValue">22%</output>
+            </label>
+            <div class="toolbar-spacer"></div>
+            <button class="tool-text" id="undoBtn" type="button">↶ Undo</button>
+            <button class="tool-text danger" id="clearBtn" type="button">Hapus</button>
+          </div>
+
+          <div class="canvas-wrap" id="canvasWrap">
+            <canvas id="drawCanvas" width="720" height="720" aria-label="Area menggambar karakter"></canvas>
+            <div class="canvas-corner top-left"></div><div class="canvas-corner top-right"></div>
+            <div class="canvas-corner bottom-left"></div><div class="canvas-corner bottom-right"></div>
+          </div>
+
+          <div class="canvas-footer">
+            <button class="button secondary" id="prevBtn" type="button">← Sebelumnya</button>
+            <div class="keyboard-hint desktop-only"><kbd>←</kbd><kbd>→</kbd> pindah &nbsp; <kbd>Ctrl</kbd> + <kbd>Z</kbd> undo</div>
+            <button class="button primary" id="nextBtn" type="button">Simpan & Berikutnya →</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="properties">
+        <section class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Font setup</p><h3>Detail font</h3></div></div>
+          <label class="field"><span>Nama font</span><input id="fontName" type="text" value="My Handwriting" maxlength="42" /></label>
+          <div class="field-row">
+            <label class="field"><span>Style</span>
+              <select id="fontStyle"><option>Regular</option><option>Medium</option><option>Bold</option></select>
+            </label>
+            <label class="field"><span>Spacing</span><input id="letterSpacing" type="number" value="70" min="20" max="240" /></label>
+          </div>
+        </section>
+
+        <section class="panel mini-preview-panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">Live preview</p><h3>Coba tulisanmu</h3></div>
+            <button class="text-link" id="openPreviewBtn" type="button">Buka besar</button>
+          </div>
+          <div class="mini-preview" id="miniPreview">Aa Bb Cc<br><span>123 &amp; ?!</span></div>
+          <p class="muted tiny">Preview memperbarui karakter yang sudah selesai digambar.</p>
+        </section>
+
+        <section class="panel checklist-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Checklist</p><h3>Sebelum export</h3></div></div>
+          <div class="check-row done" id="checkMeta"><span>✓</span><p><strong>Nama font</strong><small>Sudah diisi</small></p></div>
+          <div class="check-row" id="checkGlyphs"><span>○</span><p><strong>Semua karakter</strong><small id="remainingText">87 karakter tersisa</small></p></div>
+        </section>
+      </aside>
+    </main>
+
+    <nav class="bottom-nav mobile-only" aria-label="Aksi cepat">
+      <button id="bottomChars"><span>⌨</span>Karakter</button>
+      <button class="active"><span>✎</span>Gambar</button>
+      <button id="bottomPreview"><span>◉</span>Preview</button>
+      <button id="bottomFinish"><span>↓</span>Export</button>
+    </nav>
+  </div>
+
+  <div class="scrim" id="scrim" hidden></div>
+
+  <dialog class="modal" id="previewModal">
+    <form method="dialog" class="modal-shell preview-shell">
+      <div class="modal-head">
+        <div><p class="eyebrow">Live font preview</p><h2>Lihat hasil tulisanmu</h2></div>
+        <button class="icon-btn" value="cancel" aria-label="Tutup">×</button>
+      </div>
+      <div class="preview-controls">
+        <label class="field grow"><span>Teks contoh</span><input id="previewInput" value="The quick brown fox jumps over 123 lazy dogs!" /></label>
+        <label class="field size-field"><span>Ukuran</span><input id="previewSize" type="range" min="28" max="108" value="64" /></label>
+      </div>
+      <div class="big-preview" id="bigPreview">The quick brown fox jumps over 123 lazy dogs!</div>
+      <div class="preview-samples">
+        <div><span>Heading</span><p class="sample-font">Hello World</p></div>
+        <div><span>Alphabet</span><p class="sample-font">ABCDEFGHIJKLMNOPQRSTUVWXYZ</p></div>
+        <div><span>Numbers</span><p class="sample-font">0123456789</p></div>
+      </div>
+      <p class="modal-note">Karakter yang belum kamu gambar akan terlihat kosong pada preview font buatanmu.</p>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="finishModal">
+    <div class="modal-shell finish-shell">
+      <button class="icon-btn modal-close" id="finishClose" type="button" aria-label="Tutup">×</button>
+      <div class="finish-icon" id="finishIcon">✓</div>
+      <p class="eyebrow">Final check</p>
+      <h2 id="finishTitle">Font kamu hampir siap</h2>
+      <p id="finishDescription">Selesaikan seluruh karakter wajib, lalu konfirmasi untuk membuat file font.</p>
+
+      <div class="finish-progress">
+        <div><span id="finishCount">0 / 87 selesai</span><strong id="finishPct">0%</strong></div>
+        <div class="progress-track large"><span id="finishBar"></span></div>
+      </div>
+
+      <div class="missing-box" id="missingBox">
+        <strong>Masih belum digambar</strong>
+        <div class="missing-chars" id="missingChars"></div>
+      </div>
+
+      <div class="confirm-box" id="confirmBox" hidden>
+        <span>🎉</span>
+        <p><strong>Semua karakter sudah lengkap.</strong><br />Klik “Ya, buat font” untuk mengunci versi ini dan menyiapkan file OTF + TTF.</p>
+      </div>
+
+      <div class="modal-actions">
+        <button class="button secondary" id="backToEditor" type="button">Kembali menggambar</button>
+        <button class="button primary" id="confirmFontBtn" type="button" disabled>Ya, buat font</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="modal" id="exportModal">
+    <div class="modal-shell export-shell">
+      <button class="icon-btn modal-close" id="exportClose" type="button" aria-label="Tutup">×</button>
+      <div class="finish-icon success">Aa</div>
+      <p class="eyebrow">Font ready</p>
+      <h2 id="exportTitle">My Handwriting siap dipakai</h2>
+      <p>Font diproses langsung di perangkatmu. Pilih format yang kamu perlukan.</p>
+
+      <div class="export-grid">
+        <button class="export-card" id="downloadOtf" type="button">
+          <span class="file-badge">OTF</span>
+          <div><strong>OpenType Font</strong><small>Kompatibel untuk desain & desktop</small></div>
+          <span class="download-arrow">↓</span>
+        </button>
+        <button class="export-card" id="downloadTtf" type="button">
+          <span class="file-badge">TTF</span>
+          <div><strong>TrueType Font</strong><small>Kompatibel luas di sistem operasi</small></div>
+          <span class="download-arrow">↓</span>
+        </button>
+      </div>
+
+      <div class="export-preview" id="exportPreview">Made with my own handwriting.</div>
+
+      <div class="export-foot">
+        <span id="exportStatus">✓ File font siap diunduh</span>
+        <button class="text-link" id="continueEditing" type="button">Edit lagi</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
