@@ -147,3 +147,16 @@ Untuk menjadikannya produk font-engine production-grade, next technical layer id
 - Template/preview/assistant/kerning/scan/export punya layout mobile khusus.
 - Mendukung safe-area pada iPhone/Android.
 - Breakpoint ekstra untuk layar <=380px.
+
+## Bugfix v3.1
+
+Perbaikan stabilitas setelah mobile refactor:
+
+- Menghapus deklarasi event drawer mobile yang terduplikasi dan dapat menghentikan seluruh JavaScript.
+- Menambahkan fallback aman saat `localStorage` diblokir browser/preview environment.
+- Font engine CDN sekarang dimuat secara dinamis; kegagalan jaringan tidak lagi mematikan editor utama.
+- Memperkuat migrasi data alternate glyph agar array variant kosong tidak menyebabkan crash.
+- Menambahkan fallback untuk browser yang tidak memiliki `HTMLDialogElement.showModal()` penuh.
+- Mencegah state project tersimpan tertimpa saat proses hydration theme.
+- Memastikan semua ID DOM yang direferensikan JavaScript tersedia.
+- Smoke-tested pada viewport 360×800, 390×844, 430×932, 768×1024, dan 1366×768 tanpa horizontal overflow.

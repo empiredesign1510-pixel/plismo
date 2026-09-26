@@ -1,6 +1,26 @@
-import * as opentype from "https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/+esm";
-import { createFont } from "https://esm.sh/fonteditor-core@2.6.3?bundle";
-import JSZip from "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm";
+let opentype=null, createFont=null, JSZip=null;
+let fontEnginePromise=null;
+const FONT_ENGINE_URLS={
+  opentype:"https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/+esm",
+  fonteditor:"https://esm.sh/fonteditor-core@2.6.3?bundle",
+  jszip:"https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm"
+};
+async function loadFontEngine(){
+  if(opentype&&createFont&&JSZip)return true;
+  if(!fontEnginePromise){
+    fontEnginePromise=(async()=>{
+      const [ot,fe,zip]=await Promise.all([
+        import(FONT_ENGINE_URLS.opentype),
+        import(FONT_ENGINE_URLS.fonteditor),
+        import(FONT_ENGINE_URLS.jszip)
+      ]);
+      opentype=ot; createFont=fe.createFont; JSZip=zip.default||zip.JSZip||zip;
+      if(!opentype?.Path||!opentype?.Glyph||!opentype?.Font||typeof createFont!=="function"||typeof JSZip!=="function") throw new Error("Font engine tidak kompatibel.");
+      return true;
+    })().catch(err=>{fontEnginePromise=null;throw err});
+  }
+  return fontEnginePromise;
+}
 
 const SETS = {
   upper:[..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"], lower:[..."abcdefghijklmnopqrstuvwxyz"], numbers:[..."0123456789"],
@@ -9,6 +29,8 @@ const SETS = {
 const GROUP_NAMES={upper:"Huruf Kapital",lower:"Huruf Kecil",numbers:"Angka",symbols:"Simbol & Tanda Baca"};
 const ALL_CHARS=Object.values(SETS).flat(), TOTAL=ALL_CHARS.length;
 const STORAGE_KEY="glyphcraft-studio-v2", PROJECTS_KEY="glyphcraft-studio-projects-v1";
+function storageGet(key,fallback=null){try{const v=globalThis.localStorage?.getItem(key);return v??fallback}catch{return fallback}}
+function storageSet(key,value){try{globalThis.localStorage?.setItem(key,value);return true}catch{return false}}
 
 const BRUSHES={
   monoline:{name:"Monoline",desc:"Bersih & konsisten",min:.98,max:1.02,angle:0,texture:0,opacity:1,cap:"round"},
@@ -46,7 +68,7 @@ let sigDrawing=false,sigStroke=null,sigStrokes=[];
 
 function defaultState(){
   return {
-    projectId:crypto.randomUUID?.()||String(Date.now()),projectName:"My Handwriting",theme:matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light",
+    projectId:(globalThis.crypto?.randomUUID?.()||String(Date.now())),projectName:"My Handwriting",theme:(globalThis.matchMedia?.("(prefers-color-scheme: dark)")?.matches?"dark":"light"),
     activeGroup:"upper",activeChar:"A",activeVariant:0,fontName:"My Handwriting",fontStyle:"Regular",spacing:70,templateOpacity:22,brushSize:26,
     brush:"monoline",template:"clean",snap:true,drawings:{},kerning:{AV:-40,To:-35,Wa:-25,Yo:-35,Ta:-20,LT:-15,FA:-20,PA:-15},
     ligatures:["th","st","fi"],snapshots:[],customTemplate:null
@@ -62,15 +84,18 @@ function normalizeState(raw){
   }
   return s;
 }
-function loadState(){try{return normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY))||{});}catch{return defaultState();}}
+function loadState(){try{return normalizeState(JSON.parse(storageGet(STORAGE_KEY,"{}"))||{});}catch{return defaultState();}}
 function saveState(){
   state.activeGroup=activeGroup;state.activeChar=activeChar;state.activeVariant=activeVariant;
   state.fontName=$("fontName").value.trim()||"My Handwriting";state.projectName=state.fontName;
   state.fontStyle=$("fontStyle").value;state.spacing=Number($("letterSpacing").value)||70;state.templateOpacity=Number($("templateOpacity").value);
   state.brushSize=Number($("brushSize").value);state.snap=$("snapToggle").checked;
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(state));$("autosaveLabel").textContent="Tersimpan lokal";$("projectLabel").textContent=state.fontName;
+  const stored=storageSet(STORAGE_KEY,JSON.stringify(state));$("autosaveLabel").textContent=stored?"Tersimpan lokal":"Mode sementara";$("projectLabel").textContent=state.fontName;
 }
-function getVariants(ch){state.drawings[ch] ||= [[]]; return state.drawings[ch];}
+function getVariants(ch){
+  if(!Array.isArray(state.drawings[ch])||state.drawings[ch].length===0)state.drawings[ch]=[[]];
+  return state.drawings[ch];
+}
 function getCurrentStrokes(){const v=getVariants(activeChar);while(v.length<=activeVariant)v.push([]);return v[activeVariant];}
 function hasArt(strokes){return Array.isArray(strokes)&&strokes.some(s=>s.points?.length>1);}
 function isDone(ch){return (state.drawings[ch]||[]).some(hasArt);}
@@ -79,7 +104,11 @@ function showToast(msg){clearTimeout(toastTimer);$("toast").textContent=msg;$("t
 function slugify(t){return (t||"my-font").normalize("NFKD").replace(/[^\w\s-]/g,"").trim().replace(/\s+/g,"-").toLowerCase()||"my-font";}
 function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1200);}
 
-function setTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;document.querySelector('meta[name="theme-color"]').content=theme==="dark"?"#101217":"#f4f5f7";saveState();drawCanvas();drawSignature();}
+function setTheme(theme,persist=true){
+  state.theme=theme;document.documentElement.dataset.theme=theme;
+  const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=theme==="dark"?"#101217":"#f4f5f7";
+  if(persist)saveState();drawCanvas();drawSignature();
+}
 function currentTemplate(){return TEMPLATES.find(t=>t.id===state.template)||TEMPLATES[0];}
 function renderTemplateLibrary(filter="all"){
   const grid=$("templateGrid");grid.innerHTML="";
@@ -94,8 +123,16 @@ function applyTemplateUI(){
   const t=currentTemplate();$("templateName").textContent=t.name;$("templateEra").textContent=t.era;$("templateMiniGlyph").style.fontFamily=t.font;$("templateMiniGlyph").style.fontWeight=t.weight;
   $("templateDescription").textContent=`${t.name}: ${t.desc}`; 
 }
-function openModal(id){const d=$(id);if(d&&!d.open)d.showModal();}
-function closeModal(id){const d=$(id);if(d?.open)d.close();}
+function openModal(id){
+  const d=$(id);if(!d||d.open)return;
+  try{if(typeof d.showModal==="function")d.showModal();else d.setAttribute("open","");}
+  catch(e){console.warn("Dialog fallback",id,e);d.setAttribute("open","");}
+}
+function closeModal(id){
+  const d=$(id);if(!d)return;
+  try{if(typeof d.close==="function"&&d.open)d.close();else d.removeAttribute("open");}
+  catch{d.removeAttribute("open");}
+}
 function renderGrid(){
   [...$("charTabs").querySelectorAll("button")].forEach(b=>b.classList.toggle("active",b.dataset.group===activeGroup));
   const grid=$("charGrid");grid.innerHTML="";
@@ -233,6 +270,7 @@ function glyphVariant(ch,index=0,weightScale=1){
 function notdef(){const p=new opentype.Path();p.moveTo(70,0);p.lineTo(70,700);p.lineTo(560,700);p.lineTo(560,0);p.close();return new opentype.Glyph({name:".notdef",advanceWidth:630,path:p})}
 function spaceGlyph(){return new opentype.Glyph({name:"space",unicode:32,advanceWidth:330,path:new opentype.Path()})}
 async function buildFont(requireComplete=true,weightScale=1,variantIndex=0){
+  await loadFontEngine();
   if(requireComplete&&doneCount()!==TOTAL)throw new Error("Karakter utama belum lengkap.");
   const glyphs=[notdef(),spaceGlyph(),...ALL_CHARS.map(ch=>{const vars=state.drawings[ch]||[];const use=(vars[variantIndex]&&hasArt(vars[variantIndex]))?variantIndex:0;return glyphVariant(ch,use,weightScale)})],family=$("fontName").value.trim()||"My Handwriting";
   const font=new opentype.Font({familyName:family,styleName:$("fontStyle").value||"Regular",unitsPerEm:1000,ascender:800,descender:-200,glyphs});
@@ -253,7 +291,10 @@ async function updateFontPreview(){
     previewObjectUrl=urls;
     document.querySelectorAll(".sample-font,#miniPreview,#exportPreview").forEach(el=>el.style.fontFamily='"GlyphCraftPreviewV1", sans-serif');
     renderAlternatePreview();
-  }catch(e){console.warn(e)}
+  }catch(e){
+    console.warn("Font preview engine unavailable:",e);
+    const hint=$("assistantHint");if(hint&&!hasArt(getCurrentStrokes()))hint.textContent="Editor siap · preview font butuh koneksi";
+  }
 }
 function renderAlternatePreview(){
   const box=$("bigPreview"),text=$("previewInput").value||"",random=$("randomAltToggle").checked;box.innerHTML="";
@@ -298,11 +339,11 @@ function snapshot(){
 function exportProject(){saveState();downloadBlob(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),`${slugify(state.fontName)}-project.json`)}
 function importProjectFile(file){const r=new FileReader();r.onload=()=>{try{state=normalizeState(JSON.parse(r.result));activeGroup=state.activeGroup;activeChar=state.activeChar;activeVariant=state.activeVariant||0;hydrateUI();showToast("Project berhasil diimport")}catch{showToast("File project tidak valid")}};r.readAsText(file)}
 function saveProjectIndex(){
-  const list=JSON.parse(localStorage.getItem(PROJECTS_KEY)||"[]"),payload={id:state.projectId,name:state.fontName,updated:Date.now(),state:JSON.parse(JSON.stringify(state))};const i=list.findIndex(x=>x.id===payload.id);if(i>=0)list[i]=payload;else list.unshift(payload);localStorage.setItem(PROJECTS_KEY,JSON.stringify(list.slice(0,8)));
+  const list=JSON.parse(storageGet(PROJECTS_KEY,"[]")||"[]"),payload={id:state.projectId,name:state.fontName,updated:Date.now(),state:JSON.parse(JSON.stringify(state))};const i=list.findIndex(x=>x.id===payload.id);if(i>=0)list[i]=payload;else list.unshift(payload);storageSet(PROJECTS_KEY,JSON.stringify(list.slice(0,8)));
 }
 function renderProjects(){
-  saveProjectIndex();const list=JSON.parse(localStorage.getItem(PROJECTS_KEY)||"[]"),box=$("projectList");box.innerHTML="";
-  list.forEach(p=>{const row=document.createElement("div");row.className="project-row";row.innerHTML=`<div><strong>${p.name}</strong><small>${new Date(p.updated).toLocaleString()} · ${p.id===state.projectId?"aktif":"lokal"}</small></div><span class="project-row-actions"><button data-load>Load</button><button data-delete>Delete</button></span>`;row.querySelector("[data-load]").onclick=()=>{state=normalizeState(p.state);activeGroup=state.activeGroup;activeChar=state.activeChar;activeVariant=state.activeVariant||0;hydrateUI();closeModal("projectsModal");showToast("Project dimuat")};row.querySelector("[data-delete]").onclick=()=>{const next=list.filter(x=>x.id!==p.id);localStorage.setItem(PROJECTS_KEY,JSON.stringify(next));renderProjects()};box.appendChild(row)});
+  saveProjectIndex();const list=JSON.parse(storageGet(PROJECTS_KEY,"[]")||"[]"),box=$("projectList");box.innerHTML="";
+  list.forEach(p=>{const row=document.createElement("div");row.className="project-row";row.innerHTML=`<div><strong>${p.name}</strong><small>${new Date(p.updated).toLocaleString()} · ${p.id===state.projectId?"aktif":"lokal"}</small></div><span class="project-row-actions"><button data-load>Load</button><button data-delete>Delete</button></span>`;row.querySelector("[data-load]").onclick=()=>{state=normalizeState(p.state);activeGroup=state.activeGroup;activeChar=state.activeChar;activeVariant=state.activeVariant||0;hydrateUI();closeModal("projectsModal");showToast("Project dimuat")};row.querySelector("[data-delete]").onclick=()=>{const next=list.filter(x=>x.id!==p.id);storageSet(PROJECTS_KEY,JSON.stringify(next));renderProjects()};box.appendChild(row)});
   (state.snapshots||[]).slice().reverse().forEach(s=>{const row=document.createElement("div");row.className="project-row";row.innerHTML=`<div><strong>${s.name}</strong><small>Snapshot project aktif</small></div><span class="project-row-actions"><button data-restore>Restore</button></span>`;row.querySelector("[data-restore]").onclick=()=>{state=normalizeState(s.state);activeGroup=state.activeGroup;activeChar=state.activeChar;activeVariant=state.activeVariant||0;hydrateUI();closeModal("projectsModal");showToast("Snapshot dipulihkan")};box.appendChild(row)})
 }
 function newProject(){if(!confirm("Buat project baru? Project saat ini akan tetap tersimpan lokal."))return;saveProjectIndex();state=defaultState();activeGroup="upper";activeChar="A";activeVariant=0;hydrateUI();showToast("Project baru dibuat")}
@@ -325,12 +366,15 @@ async function prepareExport(weightScale=1){
     try{const f=createFont(otf,{type:"otf",compound2simple:true});ttf=f.write({type:"ttf",hinting:false});try{woff=f.write({type:"woff",hinting:false})}catch{}try{woff2=f.write({type:"woff2",hinting:false})}catch{}}catch(e){console.warn("conversion",e)}
     generated={font,otf,ttf,woff,woff2};$("exportTitle").textContent=`${state.fontName} siap dipakai`;$("exportStatus").textContent=`✓ ${["OTF",ttf&&"TTF",woff&&"WOFF",woff2&&"WOFF2"].filter(Boolean).join(" · ")} siap`;
     $("downloadTtf").disabled=!ttf;$("downloadWoff").disabled=!woff;closeModal("finishModal");openModal("exportModal");schedulePreviewFont();
-  }catch(e){console.error(e);showToast(e.message||"Gagal membuat font")}finally{$("confirmFontBtn").disabled=doneCount()!==TOTAL;$("confirmFontBtn").textContent="Buat font"}
+  }catch(e){console.error(e);showToast(e?.message?.includes("fetch")||e?.message?.includes("module")?"Font engine gagal dimuat. Cek koneksi internet lalu coba lagi.":(e.message||"Gagal membuat font"))}finally{$("confirmFontBtn").disabled=doneCount()!==TOTAL;$("confirmFontBtn").textContent="Buat font"}
 }
 function downloadBuffer(buf,ext,mime){if(!buf)return showToast(`${ext.toUpperCase()} belum tersedia`);downloadBlob(new Blob([buf],{type:mime}),`${slugify(state.fontName)}.${ext}`)}
 function toBase64(buffer){let binary="",bytes=new Uint8Array(buffer);for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return btoa(binary)}
 async function downloadWebBundle(){
-  if(!generated.otf)await prepareExport();const zip=new JSZip(),slug=slugify(state.fontName),family=state.fontName.replace(/"/g,"");
+  await loadFontEngine();
+  if(!generated.otf)await prepareExport();
+  if(!generated.otf)return;
+  const zip=new JSZip(),slug=slugify(state.fontName),family=state.fontName.replace(/"/g,"");
   zip.file(`${slug}.otf`,generated.otf);if(generated.ttf)zip.file(`${slug}.ttf`,generated.ttf);if(generated.woff)zip.file(`${slug}.woff`,generated.woff);if(generated.woff2)zip.file(`${slug}.woff2`,generated.woff2);
   const src=generated.woff2?`url("./${slug}.woff2") format("woff2")`:generated.woff?`url("./${slug}.woff") format("woff")`:`url("./${slug}.otf") format("opentype")`;
   zip.file("font.css",`@font-face{font-family:"${family}";src:${src};font-weight:400;font-style:normal;font-display:swap;}\n.font-${slug}{font-family:"${family}",sans-serif;}`);
@@ -343,7 +387,7 @@ function downloadShowcase(){
 }
 
 function hydrateUI(){
-  setTheme(state.theme);$("fontName").value=state.fontName;$("fontStyle").value=state.fontStyle;$("letterSpacing").value=state.spacing;$("templateOpacity").value=state.templateOpacity;$("templateOpacityValue").textContent=`${state.templateOpacity}%`;$("brushSize").value=state.brushSize;$("brushSizeValue").textContent=state.brushSize;$("snapToggle").checked=state.snap;
+  setTheme(state.theme,false);$("fontName").value=state.fontName;$("fontStyle").value=state.fontStyle;$("letterSpacing").value=state.spacing;$("templateOpacity").value=state.templateOpacity;$("templateOpacityValue").textContent=`${state.templateOpacity}%`;$("brushSize").value=state.brushSize;$("brushSizeValue").textContent=state.brushSize;$("snapToggle").checked=state.snap;
   applyBrushUI();applyTemplateUI();renderBrushMenu();renderGrid();renderVariants();updateEditor();drawCanvas();renderKerning();renderLigatures();updateQualityMini();schedulePreviewFont();saveState();
 }
 function closeMobilePanels(){
@@ -376,12 +420,8 @@ function bind(){
   const closeMobileDrawers=()=>{$("sidebar").classList.remove("open");$("properties").classList.remove("open");$("scrim").hidden=true};
   const openChars=()=>{$("properties").classList.remove("open");$("sidebar").classList.add("open");$("scrim").hidden=false};
   const openProperties=()=>{$("sidebar").classList.remove("open");$("properties").classList.add("open");$("scrim").hidden=false};
-  const closeMobileDrawers=()=>{$("sidebar").classList.remove("open");$("properties").classList.remove("open");$("scrim").hidden=true};
-  const openChars=()=>{$("properties").classList.remove("open");$("sidebar").classList.add("open");$("scrim").hidden=false};
-  const openProperties=()=>{$("sidebar").classList.remove("open");$("properties").classList.add("open");$("scrim").hidden=false};
   $("openCharsBtn").onclick=openChars;$("bottomChars").onclick=openChars;$("sidebarClose").onclick=closeMobileDrawers;
   $("mobileToolsBtn").onclick=openProperties;$("bottomPanel").onclick=openProperties;$("propertiesClose").onclick=closeMobileDrawers;
-  $("scrim").onclick=closeMobileDrawers;$("bottomPanel").onclick=openProperties;$("propertiesClose").onclick=closeMobileDrawers;
   $("scrim").onclick=closeMobileDrawers;
   window.addEventListener("keydown",e=>{if(["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();undo()}else if(e.key==="ArrowRight")navigate(1);else if(e.key==="ArrowLeft")navigate(-1)});
 }
