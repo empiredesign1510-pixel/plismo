@@ -3,32 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f7f7fb" />
-  <meta name="description" content="GlyphCraft — gambar tulisanmu dan ubah menjadi font OTF/TTF langsung di browser." />
-  <title>GlyphCraft — Handwriting Font Maker</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="preconnect" href="https://esm.sh" crossorigin>
+  <meta name="theme-color" content="#f5f6f8" />
+  <meta name="description" content="GlyphCraft Studio — buat font tulisan tangan dengan brush, template, alternate glyph, consistency assistant, kerning, preview, dan export webfont." />
+  <title>GlyphCraft Studio — Smart Handwriting Font Maker</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://esm.sh" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&family=Fascinate&family=Libre+Caslon+Text:wght@400;700&family=Manrope:wght@600;700;800&family=Monoton&family=Pacifico&family=Press+Start+2P&family=Rye&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="GlyphCraft home">
-        <span class="brand-mark" aria-hidden="true">G</span>
-        <span class="brand-copy"><strong>GlyphCraft</strong><small>Handwriting Font Maker</small></span>
+      <a class="brand" href="#" aria-label="GlyphCraft Studio home">
+        <span class="brand-mark">G</span>
+        <span class="brand-copy"><strong>GlyphCraft Studio</strong><small>Smart Font Maker</small></span>
       </a>
 
-      <div class="topbar-center" aria-label="Project progress">
+      <div class="topbar-center">
+        <div class="project-title-row">
+          <span class="project-dot"></span>
+          <strong id="projectLabel">My Handwriting</strong>
+          <span id="autosaveLabel">Tersimpan lokal</span>
+        </div>
         <div class="progress-copy"><span id="progressText">0 / 87 karakter</span><strong id="progressPercent">0%</strong></div>
         <div class="progress-track"><span id="progressBar"></span></div>
       </div>
 
       <div class="topbar-actions">
-        <button class="icon-btn" id="themeToggle" type="button" aria-label="Ganti tema" title="Light / Dark mode">
-          <span class="sun">☀</span><span class="moon">☾</span>
-        </button>
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="Ganti tema"><span class="sun">☀</span><span class="moon">☾</span></button>
+        <button class="button secondary desktop-only" id="projectsBtn" type="button">Projects</button>
         <button class="button secondary desktop-only" id="previewTopBtn" type="button">Preview</button>
-        <button class="button primary" id="finishTopBtn" type="button">Selesai</button>
+        <button class="button primary" id="finishTopBtn" type="button">Export</button>
       </div>
     </header>
 
@@ -36,78 +43,113 @@
       <aside class="sidebar" id="sidebar">
         <div class="sidebar-heading">
           <div><p class="eyebrow">Character set</p><h2>Karakter</h2></div>
-          <button class="icon-btn sidebar-close mobile-only" id="sidebarClose" aria-label="Tutup daftar karakter">×</button>
+          <button class="icon-btn sidebar-close mobile-only" id="sidebarClose" aria-label="Tutup">×</button>
         </div>
 
-        <div class="segment" id="charTabs" role="tablist" aria-label="Grup karakter">
-          <button class="active" data-group="upper" type="button">ABC</button>
-          <button data-group="lower" type="button">abc</button>
-          <button data-group="numbers" type="button">123</button>
-          <button data-group="symbols" type="button">#+=</button>
+        <div class="segment" id="charTabs">
+          <button class="active" data-group="upper">ABC</button>
+          <button data-group="lower">abc</button>
+          <button data-group="numbers">123</button>
+          <button data-group="symbols">#+=</button>
         </div>
 
-        <div class="char-grid" id="charGrid" aria-label="Daftar karakter"></div>
+        <div class="char-grid" id="charGrid"></div>
+
+        <div class="sidebar-section">
+          <div class="section-title-row"><strong>Alternate glyph</strong><span id="variantCount">1 variant</span></div>
+          <div class="variant-strip" id="variantStrip"></div>
+          <button class="mini-action full" id="addVariantBtn" type="button">＋ Tambah varian karakter</button>
+          <p class="helper">Buat 2–4 versi huruf yang sama agar handwriting terasa lebih organik.</p>
+        </div>
 
         <div class="sidebar-tip">
           <span class="tip-icon">✦</span>
-          <div><strong>Tip</strong><p>Gambar mengikuti huruf transparan. Kamu boleh sedikit melewati garis bantu—font tetap dibuat dari goresanmu.</p></div>
+          <div><strong>Recreate, jangan trace sempurna</strong><p>Template hanya acuan gaya. Sedikit perbedaan justru membuat font terasa milikmu.</p></div>
         </div>
       </aside>
 
       <section class="editor">
         <div class="mobile-editor-bar mobile-only">
-          <button class="button secondary compact" id="openCharsBtn" type="button">☰ Karakter</button>
+          <button class="button secondary compact" id="openCharsBtn">☰ Karakter</button>
           <span id="mobileCharLabel">Huruf A</span>
-          <button class="button secondary compact" id="mobilePreviewBtn" type="button">Preview</button>
+          <button class="button secondary compact" id="mobileToolsBtn">Tools</button>
         </div>
 
         <div class="editor-heading">
           <div>
             <p class="eyebrow" id="groupEyebrow">Huruf Kapital</p>
-            <h1>Gambar karakter <span id="charTitle">A</span></h1>
-            <p>Gunakan mouse, stylus, atau jari. Template hanya panduan dan tidak ikut masuk ke font.</p>
+            <h1>Gambar karakter <span id="charTitle">A</span> <small id="variantTitle">V1</small></h1>
+            <p id="templateDescription">Template guide aktif. Gambar dengan gaya kamu sendiri.</p>
           </div>
-          <div class="status-pill" id="saveStatus"><span></span> Belum digambar</div>
+          <div class="heading-actions">
+            <div class="status-pill" id="saveStatus"><span></span> Belum digambar</div>
+            <button class="button secondary compact desktop-only" id="templateBtn">Templates</button>
+          </div>
         </div>
 
         <div class="canvas-card">
           <div class="canvas-toolbar">
             <div class="tool-group">
-              <button class="tool-btn active" id="penTool" type="button" aria-label="Pena" title="Pena">✎</button>
-              <button class="tool-btn" id="eraserTool" type="button" aria-label="Penghapus" title="Penghapus">⌫</button>
+              <button class="tool-btn active" id="penTool" type="button" title="Brush">✎</button>
+              <button class="tool-btn" id="eraserTool" type="button" title="Penghapus">⌫</button>
+              <button class="tool-btn" id="panTool" type="button" title="Pan / inspect">✥</button>
             </div>
             <span class="toolbar-divider"></span>
+
+            <button class="brush-chip" id="brushMenuBtn" type="button">
+              <span class="brush-swatch" id="brushSwatch"></span>
+              <span><small>Brush</small><strong id="brushName">Monoline</strong></span>
+              <b>⌄</b>
+            </button>
+
             <label class="slider-control">
-              <span>Ukuran</span>
-              <input id="brushSize" type="range" min="10" max="54" value="28" />
-              <output id="brushSizeValue">28</output>
+              <span>Size</span>
+              <input id="brushSize" type="range" min="6" max="72" value="26" />
+              <output id="brushSizeValue">26</output>
             </label>
-            <span class="toolbar-divider"></span>
+
+            <span class="toolbar-divider template-control"></span>
             <label class="slider-control template-control">
-              <span>Template</span>
-              <input id="templateOpacity" type="range" min="0" max="65" value="22" />
+              <span>Guide</span>
+              <input id="templateOpacity" type="range" min="0" max="75" value="22" />
               <output id="templateOpacityValue">22%</output>
             </label>
+
             <div class="toolbar-spacer"></div>
-            <button class="tool-text" id="undoBtn" type="button">↶ Undo</button>
-            <button class="tool-text danger" id="clearBtn" type="button">Hapus</button>
+            <button class="tool-text" id="undoBtn">↶ Undo</button>
+            <button class="tool-text" id="cleanupBtn">✦ Cleanup</button>
+            <button class="tool-text danger" id="clearBtn">Hapus</button>
           </div>
+
+          <div class="brush-menu" id="brushMenu" hidden></div>
 
           <div class="canvas-wrap" id="canvasWrap">
             <canvas id="drawCanvas" width="720" height="720" aria-label="Area menggambar karakter"></canvas>
             <div class="canvas-corner top-left"></div><div class="canvas-corner top-right"></div>
             <div class="canvas-corner bottom-left"></div><div class="canvas-corner bottom-right"></div>
+            <div class="pressure-badge" id="pressureBadge">Pressure ready</div>
           </div>
 
           <div class="canvas-footer">
-            <button class="button secondary" id="prevBtn" type="button">← Sebelumnya</button>
-            <div class="keyboard-hint desktop-only"><kbd>←</kbd><kbd>→</kbd> pindah &nbsp; <kbd>Ctrl</kbd> + <kbd>Z</kbd> undo</div>
-            <button class="button primary" id="nextBtn" type="button">Simpan & Berikutnya →</button>
+            <button class="button secondary" id="prevBtn">← Sebelumnya</button>
+            <div class="canvas-meta desktop-only">
+              <span id="strokeCount">0 strokes</span>
+              <span>•</span>
+              <span id="assistantHint">Mulai menggambar untuk analisis</span>
+            </div>
+            <button class="button primary" id="nextBtn">Simpan & Berikutnya →</button>
           </div>
+        </div>
+
+        <div class="quick-labs">
+          <button class="lab-card" id="assistantBtn"><span>◎</span><div><strong>Consistency Assistant</strong><small>Baseline, proporsi, stroke</small></div><b>→</b></button>
+          <button class="lab-card" id="kerningBtn"><span>↔</span><div><strong>Kerning Lab</strong><small>Atur pasangan AV, To, Wa…</small></div><b>→</b></button>
+          <button class="lab-card" id="ligatureBtn"><span>∞</span><div><strong>Ligature Studio</strong><small>Buat th, st, fi, ing…</small></div><b>→</b></button>
+          <button class="lab-card" id="signatureBtn"><span>〰</span><div><strong>Signature Mode</strong><small>PNG / SVG transparan</small></div><b>→</b></button>
         </div>
       </section>
 
-      <aside class="properties">
+      <aside class="properties" id="properties">
         <section class="panel">
           <div class="panel-heading"><div><p class="eyebrow">Font setup</p><h3>Detail font</h3></div></div>
           <label class="field"><span>Nama font</span><input id="fontName" type="text" value="My Handwriting" maxlength="42" /></label>
@@ -119,24 +161,46 @@
           </div>
         </section>
 
-        <section class="panel mini-preview-panel">
+        <section class="panel">
           <div class="panel-heading">
-            <div><p class="eyebrow">Live preview</p><h3>Coba tulisanmu</h3></div>
-            <button class="text-link" id="openPreviewBtn" type="button">Buka besar</button>
+            <div><p class="eyebrow">Style guide</p><h3>Template aktif</h3></div>
+            <button class="text-link" id="templateSideBtn">Ganti</button>
           </div>
-          <div class="mini-preview" id="miniPreview">Aa Bb Cc<br><span>123 &amp; ?!</span></div>
-          <p class="muted tiny">Preview memperbarui karakter yang sudah selesai digambar.</p>
+          <div class="template-mini" id="templateMini"><span id="templateMiniGlyph">Aa</span><div><strong id="templateName">Clean Sans</strong><small id="templateEra">Modern / neutral</small></div></div>
+          <label class="toggle-row"><span><strong>Snap visual</strong><small>Bantu konsisten dengan baseline</small></span><input id="snapToggle" type="checkbox" checked /></label>
         </section>
 
-        <section class="panel checklist-panel">
-          <div class="panel-heading"><div><p class="eyebrow">Checklist</p><h3>Sebelum export</h3></div></div>
-          <div class="check-row done" id="checkMeta"><span>✓</span><p><strong>Nama font</strong><small>Sudah diisi</small></p></div>
-          <div class="check-row" id="checkGlyphs"><span>○</span><p><strong>Semua karakter</strong><small id="remainingText">87 karakter tersisa</small></p></div>
+        <section class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Quality assistant</p><h3>Kualitas teknis</h3></div><strong class="score" id="qualityScore">--</strong></div>
+          <div class="metric-list" id="metricList">
+            <div><span>Baseline</span><b>—</b></div>
+            <div><span>Proporsi</span><b>—</b></div>
+            <div><span>Stroke</span><b>—</b></div>
+            <div><span>Coverage</span><b>0%</b></div>
+          </div>
+          <button class="mini-action full" id="analyzeBtn">Analisis font</button>
+        </section>
+
+        <section class="panel mini-preview-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Live preview</p><h3>Coba tulisanmu</h3></div><button class="text-link" id="openPreviewBtn">Buka besar</button></div>
+          <div class="mini-preview" id="miniPreview">Aa Bb Cc<br><span>123 &amp; ?!</span></div>
+          <div class="personality-tags" id="personalityTags"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">Project tools</p><h3>Project & versi</h3></div></div>
+          <div class="project-tool-grid">
+            <button id="snapshotBtn">◷<span>Snapshot</span></button>
+            <button id="exportProjectBtn">⇩<span>Export JSON</span></button>
+            <button id="importProjectBtn">⇧<span>Import</span></button>
+            <button id="scanBtn">▦<span>Scan paper</span></button>
+          </div>
+          <input id="projectFileInput" type="file" accept=".json,application/json" hidden />
         </section>
       </aside>
     </main>
 
-    <nav class="bottom-nav mobile-only" aria-label="Aksi cepat">
+    <nav class="bottom-nav mobile-only">
       <button id="bottomChars"><span>⌨</span>Karakter</button>
       <button class="active"><span>✎</span>Gambar</button>
       <button id="bottomPreview"><span>◉</span>Preview</button>
@@ -146,83 +210,170 @@
 
   <div class="scrim" id="scrim" hidden></div>
 
-  <dialog class="modal" id="previewModal">
-    <form method="dialog" class="modal-shell preview-shell">
+  <!-- TEMPLATE LIBRARY -->
+  <dialog class="modal" id="templateModal">
+    <div class="modal-shell wide-shell">
       <div class="modal-head">
-        <div><p class="eyebrow">Live font preview</p><h2>Lihat hasil tulisanmu</h2></div>
-        <button class="icon-btn" value="cancel" aria-label="Tutup">×</button>
+        <div><p class="eyebrow">Recreate library</p><h2>Pilih template gaya</h2><p>Template tidak ikut diekspor; hanya panduan visual untuk kamu recreate.</p></div>
+        <button class="icon-btn" data-close="templateModal">×</button>
+      </div>
+      <div class="template-filters">
+        <button class="active" data-template-filter="all">Semua</button>
+        <button data-template-filter="retro">Retro</button>
+        <button data-template-filter="display">Display</button>
+        <button data-template-filter="classic">Classic</button>
+        <button data-template-filter="hand">Handmade</button>
+      </div>
+      <div class="template-grid" id="templateGrid"></div>
+      <div class="template-custom">
+        <div><strong>Custom reference</strong><small>Pilih font lokal sebagai guide di browsermu.</small></div>
+        <label class="button secondary compact">Upload font <input id="customTemplateFile" type="file" accept=".ttf,.otf,.woff,.woff2" hidden></label>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- CONSISTENCY -->
+  <dialog class="modal" id="assistantModal">
+    <div class="modal-shell">
+      <div class="modal-head">
+        <div><p class="eyebrow">Consistency Assistant</p><h2 id="assistantTitle">Analisis karakter A</h2></div>
+        <button class="icon-btn" data-close="assistantModal">×</button>
+      </div>
+      <div class="assistant-score-wrap">
+        <div class="score-ring" id="assistantScore">--</div>
+        <div><strong id="assistantSummary">Belum cukup data</strong><p id="assistantSummaryText">Gambar karakter untuk mendapatkan analisis baseline, proporsi dan stroke.</p></div>
+      </div>
+      <div class="assistant-grid" id="assistantGrid"></div>
+      <div class="suggestion-box"><strong>Saran otomatis</strong><ul id="assistantSuggestions"></ul></div>
+      <div class="modal-actions"><button class="button secondary" id="normalizeBtn">Normalize posisi</button><button class="button primary" id="smartCleanupBtn">Smart Cleanup</button></div>
+    </div>
+  </dialog>
+
+  <!-- PREVIEW -->
+  <dialog class="modal" id="previewModal">
+    <div class="modal-shell wide-shell">
+      <div class="modal-head">
+        <div><p class="eyebrow">Real-world preview</p><h2>Lihat font di dunia nyata</h2></div>
+        <button class="icon-btn" data-close="previewModal">×</button>
       </div>
       <div class="preview-controls">
         <label class="field grow"><span>Teks contoh</span><input id="previewInput" value="The quick brown fox jumps over 123 lazy dogs!" /></label>
-        <label class="field size-field"><span>Ukuran</span><input id="previewSize" type="range" min="28" max="108" value="64" /></label>
+        <label class="field size-field"><span>Ukuran</span><input id="previewSize" type="range" min="24" max="110" value="62" /></label>
+        <label class="toggle-row compact-toggle"><span><strong>Random alt</strong></span><input id="randomAltToggle" type="checkbox" checked /></label>
       </div>
       <div class="big-preview" id="bigPreview">The quick brown fox jumps over 123 lazy dogs!</div>
+      <div class="context-tabs" id="contextTabs">
+        <button class="active" data-context="poster">Poster</button><button data-context="chat">Chat</button><button data-context="brand">Brand</button><button data-context="note">Note</button><button data-context="story">Story</button>
+      </div>
+      <div class="context-preview poster" id="contextPreview">
+        <span class="context-kicker">NEW COLLECTION</span>
+        <strong class="sample-font">Make it yours.</strong>
+        <small>Handmade type • 2026</small>
+      </div>
       <div class="preview-samples">
-        <div><span>Heading</span><p class="sample-font">Hello World</p></div>
         <div><span>Alphabet</span><p class="sample-font">ABCDEFGHIJKLMNOPQRSTUVWXYZ</p></div>
         <div><span>Numbers</span><p class="sample-font">0123456789</p></div>
+        <div><span>Personality</span><p id="personalityText">Belum dianalisis</p></div>
       </div>
-      <p class="modal-note">Karakter yang belum kamu gambar akan terlihat kosong pada preview font buatanmu.</p>
-    </form>
+    </div>
   </dialog>
 
+  <!-- KERNING -->
+  <dialog class="modal" id="kerningModal">
+    <div class="modal-shell">
+      <div class="modal-head"><div><p class="eyebrow">Kerning Lab</p><h2>Atur jarak pasangan</h2></div><button class="icon-btn" data-close="kerningModal">×</button></div>
+      <div class="kerning-pair-display sample-font"><span id="kernLeft">A</span><span id="kernRight">V</span></div>
+      <div class="kerning-controls">
+        <select id="kernPairSelect"><option>AV</option><option>To</option><option>Wa</option><option>Yo</option><option>Ta</option><option>LT</option><option>FA</option><option>PA</option></select>
+        <input id="kernSlider" type="range" min="-180" max="120" value="-40" />
+        <output id="kernValue">-40</output>
+      </div>
+      <p class="modal-note">Nilai disimpan ke project dan dicoba dimasukkan ke tabel kerning saat font diekspor.</p>
+    </div>
+  </dialog>
+
+  <!-- LIGATURE -->
+  <dialog class="modal" id="ligatureModal">
+    <div class="modal-shell">
+      <div class="modal-head"><div><p class="eyebrow">Ligature Studio</p><h2>Eksperimen kombinasi huruf</h2></div><button class="icon-btn" data-close="ligatureModal">×</button></div>
+      <div class="ligature-presets" id="ligaturePresets"></div>
+      <label class="field"><span>Kombinasi custom</span><input id="ligatureInput" maxlength="4" placeholder="contoh: th" /></label>
+      <div class="ligature-preview">
+        <span>Preview komposisi</span><div class="sample-font" id="ligaturePreview">th</div>
+      </div>
+      <button class="button primary full-button" id="saveLigatureBtn">Simpan kombinasi ke project</button>
+      <p class="modal-note">MVP ini menyimpan library ligature dan preview komposisi. Substitusi GSUB native lintas aplikasi memerlukan font compiler yang lebih lengkap.</p>
+    </div>
+  </dialog>
+
+  <!-- SIGNATURE -->
+  <dialog class="modal" id="signatureModal">
+    <div class="modal-shell">
+      <div class="modal-head"><div><p class="eyebrow">Signature Mode</p><h2>Buat tanda tangan digital</h2></div><button class="icon-btn" data-close="signatureModal">×</button></div>
+      <div class="signature-toolbar"><button class="mini-action" id="signatureClear">Hapus</button><label>Size <input id="signatureSize" type="range" min="2" max="16" value="6"></label></div>
+      <canvas id="signatureCanvas" width="900" height="330"></canvas>
+      <div class="modal-actions"><button class="button secondary" id="downloadSignaturePng">Download PNG</button><button class="button primary" id="downloadSignatureSvg">Download SVG</button></div>
+    </div>
+  </dialog>
+
+  <!-- SCAN -->
+  <dialog class="modal" id="scanModal">
+    <div class="modal-shell">
+      <div class="modal-head"><div><p class="eyebrow">Scan paper mode</p><h2>Import template kertas</h2></div><button class="icon-btn" data-close="scanModal">×</button></div>
+      <div class="scan-steps">
+        <div><b>1</b><span>Cetak grid</span></div><div><b>2</b><span>Tulis tangan</span></div><div><b>3</b><span>Foto / scan</span></div><div><b>4</b><span>Import</span></div>
+      </div>
+      <button class="button secondary full-button" id="printTemplateBtn">Cetak template 87 karakter</button>
+      <label class="upload-zone">▦<strong>Pilih foto hasil scan</strong><small>JPG / PNG. Foto lurus memberi hasil terbaik.</small><input id="scanFile" type="file" accept="image/*" hidden /></label>
+      <div class="scan-preview-wrap" id="scanPreviewWrap" hidden><canvas id="scanPreview" width="900" height="620"></canvas><label class="field"><span>Threshold</span><input id="scanThreshold" type="range" min="40" max="220" value="150" /></label><button class="button primary full-button" id="scanImportBtn">Import sebagai pixel glyph draft</button></div>
+      <p class="modal-note">Auto-import membagi foto menurut grid template dan membuat draft glyph berbasis pixel. Perspective correction belum otomatis.</p>
+    </div>
+  </dialog>
+
+  <!-- PROJECTS -->
+  <dialog class="modal" id="projectsModal">
+    <div class="modal-shell">
+      <div class="modal-head"><div><p class="eyebrow">Local projects</p><h2>Project & snapshot</h2></div><button class="icon-btn" data-close="projectsModal">×</button></div>
+      <div class="project-list" id="projectList"></div>
+      <button class="button primary full-button" id="newProjectBtn">＋ Project baru</button>
+    </div>
+  </dialog>
+
+  <!-- EXPORT -->
   <dialog class="modal" id="finishModal">
     <div class="modal-shell finish-shell">
-      <button class="icon-btn modal-close" id="finishClose" type="button" aria-label="Tutup">×</button>
-      <div class="finish-icon" id="finishIcon">✓</div>
-      <p class="eyebrow">Final check</p>
-      <h2 id="finishTitle">Font kamu hampir siap</h2>
-      <p id="finishDescription">Selesaikan seluruh karakter wajib, lalu konfirmasi untuk membuat file font.</p>
-
-      <div class="finish-progress">
-        <div><span id="finishCount">0 / 87 selesai</span><strong id="finishPct">0%</strong></div>
-        <div class="progress-track large"><span id="finishBar"></span></div>
-      </div>
-
-      <div class="missing-box" id="missingBox">
-        <strong>Masih belum digambar</strong>
-        <div class="missing-chars" id="missingChars"></div>
-      </div>
-
-      <div class="confirm-box" id="confirmBox" hidden>
-        <span>🎉</span>
-        <p><strong>Semua karakter sudah lengkap.</strong><br />Klik “Ya, buat font” untuk mengunci versi ini dan menyiapkan file OTF + TTF.</p>
-      </div>
-
-      <div class="modal-actions">
-        <button class="button secondary" id="backToEditor" type="button">Kembali menggambar</button>
-        <button class="button primary" id="confirmFontBtn" type="button" disabled>Ya, buat font</button>
-      </div>
+      <button class="icon-btn modal-close" data-close="finishModal">×</button>
+      <div class="finish-icon">✓</div>
+      <p class="eyebrow">Final check</p><h2 id="finishTitle">Font kamu hampir siap</h2><p id="finishDescription"></p>
+      <div class="finish-progress"><div><span id="finishCount">0 / 87 selesai</span><strong id="finishPct">0%</strong></div><div class="progress-track large"><span id="finishBar"></span></div></div>
+      <div class="missing-box" id="missingBox"><strong>Masih belum digambar</strong><div class="missing-chars" id="missingChars"></div></div>
+      <div class="confirm-box" id="confirmBox" hidden><span>🎉</span><p><strong>Semua karakter utama lengkap.</strong><br>Kamu bisa membuat OTF, TTF, WOFF, web bundle, serta static weight instance.</p></div>
+      <div class="modal-actions"><button class="button secondary" data-close="finishModal">Kembali</button><button class="button primary" id="confirmFontBtn" disabled>Buat font</button></div>
     </div>
   </dialog>
 
   <dialog class="modal" id="exportModal">
     <div class="modal-shell export-shell">
-      <button class="icon-btn modal-close" id="exportClose" type="button" aria-label="Tutup">×</button>
-      <div class="finish-icon success">Aa</div>
-      <p class="eyebrow">Font ready</p>
-      <h2 id="exportTitle">My Handwriting siap dipakai</h2>
-      <p>Font diproses langsung di perangkatmu. Pilih format yang kamu perlukan.</p>
+      <button class="icon-btn modal-close" data-close="exportModal">×</button>
+      <div class="finish-icon success">Aa</div><p class="eyebrow">Font ready</p><h2 id="exportTitle">Font siap dipakai</h2>
+      <p>Font diproses lokal. Pilih format atau package yang kamu perlukan.</p>
 
-      <div class="export-grid">
-        <button class="export-card" id="downloadOtf" type="button">
-          <span class="file-badge">OTF</span>
-          <div><strong>OpenType Font</strong><small>Kompatibel untuk desain & desktop</small></div>
-          <span class="download-arrow">↓</span>
-        </button>
-        <button class="export-card" id="downloadTtf" type="button">
-          <span class="file-badge">TTF</span>
-          <div><strong>TrueType Font</strong><small>Kompatibel luas di sistem operasi</small></div>
-          <span class="download-arrow">↓</span>
-        </button>
+      <div class="export-grid export-grid-4">
+        <button class="export-card" id="downloadOtf"><span class="file-badge">OTF</span><div><strong>OpenType</strong><small>Desktop / design</small></div><span>↓</span></button>
+        <button class="export-card" id="downloadTtf"><span class="file-badge">TTF</span><div><strong>TrueType</strong><small>Kompatibilitas luas</small></div><span>↓</span></button>
+        <button class="export-card" id="downloadWoff"><span class="file-badge">WOFF</span><div><strong>Web Font</strong><small>Untuk website</small></div><span>↓</span></button>
+        <button class="export-card" id="downloadBundle"><span class="file-badge">ZIP</span><div><strong>Web Bundle</strong><small>Font + CSS + demo</small></div><span>↓</span></button>
       </div>
 
-      <div class="export-preview" id="exportPreview">Made with my own handwriting.</div>
-
-      <div class="export-foot">
-        <span id="exportStatus">✓ File font siap diunduh</span>
-        <button class="text-link" id="continueEditing" type="button">Edit lagi</button>
+      <div class="weight-lab">
+        <div><strong>Weight Lab</strong><small>Simulasikan weight lalu export instance statis.</small></div>
+        <input id="weightSlider" type="range" min="70" max="170" value="100" />
+        <output id="weightValue">100%</output>
+        <button class="mini-action" id="downloadWeight">Export instance</button>
       </div>
+
+      <div class="export-preview sample-font" id="exportPreview">Made with my own handwriting.</div>
+      <div class="export-foot"><span id="exportStatus">✓ File siap</span><button class="text-link" id="downloadShowcase">Showcase HTML</button></div>
     </div>
   </dialog>
 

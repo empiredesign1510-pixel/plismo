@@ -1,52 +1,135 @@
-# GlyphCraft — Handwriting Font Maker
+# GlyphCraft Studio v2
 
-Prototype website responsive untuk menggambar karakter A–Z, a–z, angka, simbol, lalu mengekspornya menjadi font.
+Upgrade besar dari MVP Font Maker. Aplikasi berjalan di browser dan menyimpan project secara lokal.
+
+## Fitur yang sudah direalisasikan
+
+### Drawing & brush
+- 8 brush preset:
+  - Monoline
+  - Marker
+  - Brush Pen (pressure-aware)
+  - Fountain
+  - Pencil
+  - Chalk
+  - Felt Tip
+  - Calligraphy
+- Pointer pressure disimpan bila stylus/browser mendukungnya.
+- Undo, eraser, cleanup, normalize position.
+- Stroke brush tersimpan per stroke.
+
+### Template recreate library
+- Clean Sans
+- Retro 70s
+- Slab Poster
+- Western
+- Editorial Serif
+- Condensed Poster
+- Casual Script
+- Pixel Arcade
+- Neon Line
+- Filter kategori
+- Upload font lokal sebagai custom visual reference
+
+Template hanya GUIDE visual. Glyph hasil export selalu berasal dari goresan pengguna.
+
+### Smart / quality tools
+- Smart Stroke Cleanup (simplify + smoothing)
+- Consistency Assistant:
+  - baseline
+  - proporsi
+  - posisi center
+  - konsistensi stroke
+- Technical quality score
+- Personality tags
+
+### Alternate glyph
+- Sampai 4 varian per karakter.
+- Disimpan di project.
+- V1 menjadi default export saat ini.
+
+### Kerning Lab
+- Pair editor untuk AV, To, Wa, Yo, Ta, LT, FA, PA.
+- Nilai disimpan dan dicoba dimasukkan ke data kerning font export.
+
+### Ligature Studio
+- Library kombinasi ligature dan preview.
+- Menyimpan kombinasi ke project.
+
+**Batas MVP:** substitusi GSUB native belum dikompilasi ke font. Untuk fitur ligature/alternate acak lintas Photoshop, Word, browser, dll, gunakan compiler OpenType yang mendukung GSUB/feature tables secara penuh.
+
+### Real-world preview
+- Poster
+- Chat
+- Brand
+- Note
+- Story
+
+### Scan Paper Mode
+- Generate printable 87-character sheet.
+- Import foto/scan.
+- Threshold-based grid segmentation.
+- Membuat pixel-glyph draft.
+
+**Batas MVP:** perspective correction / computer vision calibration belum otomatis. Foto harus cukup lurus.
+
+### Signature Mode
+- Drawing signature.
+- Export PNG transparan.
+- Export SVG vector stroke.
+
+### Project system
+- Autosave localStorage
+- Local projects
+- Snapshot/version restore
+- Export/import JSON
+
+### Export
+- OTF
+- TTF (jika fonteditor-core berhasil mengonversi di browser)
+- WOFF (jika converter mendukung)
+- WOFF2 dicoba otomatis oleh converter
+- Webfont ZIP:
+  - font
+  - CSS @font-face
+  - demo HTML
+- Standalone showcase HTML dengan font embedded
+- Weight Lab: export static weight instances
+
+**Batas MVP variable font:** slider weight menghasilkan static instances, bukan single native variable-font file dengan `wght` axis. Native variable font memerlukan compiler seperti fontTools/FontForge pipeline atau backend/WASM yang lebih lengkap.
 
 ## Menjalankan
 
-Karena aplikasi memakai JavaScript module dari CDN, jalankan lewat local server (bukan sekadar double-click `index.html`).
-
-Contoh:
+Karena memakai ES modules dari CDN:
 
 ```bash
 python -m http.server 8080
 ```
 
-Lalu buka `http://localhost:8080`.
+Lalu buka:
 
-Atau pakai VS Code + extension Live Server.
+```text
+http://localhost:8080
+```
 
-## Fitur
+Atau gunakan VS Code Live Server.
 
-- Drawing canvas dengan mouse, stylus, dan touch
-- Template huruf transparan + font guide
-- A–Z, a–z, 0–9, simbol/tanda baca
-- Undo, clear, eraser, brush size
-- Autosave ke localStorage
-- Progress karakter
-- Live font preview
-- Light / dark mode
-- Responsive desktop & mobile
-- Export OTF
-- Konversi OTF → TTF di browser
-- Tidak mengunggah gambar tulisan ke server
+## File utama
 
-## Catatan teknis
+- `index.html`
+- `style.css`
+- `app.js`
+- `README.md`
 
-- OTF dibuat dengan `opentype.js`.
-- TTF dibuat dengan mengonversi hasil OTF menggunakan `fonteditor-core`.
-- Goresan freehand diubah menjadi outline polygon sebelum dimasukkan sebagai glyph.
-- Ini MVP front-end. Untuk kualitas font produksi, tahap berikutnya idealnya menambah:
-  - contour union / overlap removal,
-  - Bézier smoothing lebih canggih,
-  - kerning editor,
-  - side-bearing per glyph,
-  - accent/diacritics,
-  - hinting,
-  - project export/import.
+## Catatan penting produksi
 
-## File
-
-- `index.html` — struktur UI
-- `style.css` — responsive UI + dark mode
-- `app.js` — drawing, autosave, preview, font generation/export
+Untuk menjadikannya produk font-engine production-grade, next technical layer idealnya:
+1. true contour boolean union / overlap removal,
+2. cubic Bézier fitting,
+3. OpenType GSUB untuk contextual alternates dan ligature,
+4. GPOS kerning,
+5. native variable-font axes,
+6. perspective correction + contour tracing pada Scan Paper,
+7. diacritic/component builder,
+8. hinting dan validation pipeline,
+9. IndexedDB/cloud sync untuk project besar.
